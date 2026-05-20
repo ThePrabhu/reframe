@@ -3,18 +3,8 @@
     "development"
   ],
   "hints": {
-    "axe/name-role-value": [
-      "default",
-      {
-        "button-name": "off"
-      }
-    ],
-    "axe/aria": [
-      "default",
-      {
-        "aria-valid-attr-value": "off"
-      }
-    ],
+    "axe/name-role-value": "default",
+    "axe/aria": "default",
     "no-inline-styles": "off"
   }
 }
