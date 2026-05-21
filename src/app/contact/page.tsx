@@ -4,7 +4,7 @@ import { ArrowRight, Github, MessageCircle } from "lucide-react";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Contact | Reframe",
+  title: "Contact — Reframe",
   description: "Get in touch with the Reframe team.",
 };
 
@@ -35,12 +35,17 @@ export default function ContactPage() {
             className="group flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-5 transition-colors hover:border-[var(--muted)]"
           >
             <Github className="h-6 w-6 text-[var(--muted)] group-hover:text-[var(--text)]" />
+
             <div>
               <div className="text-lg font-semibold group-hover:text-[var(--text)]">
                 GitHub Issues
               </div>
-              <div className="text-sm opacity-70">For bug reports and feature requests.</div>
+
+              <div className="text-sm opacity-70">
+                For bug reports and feature requests.
+              </div>
             </div>
+
             <ArrowRight className="ml-auto h-4 w-4 opacity-60" />
           </a>
 
@@ -51,12 +56,17 @@ export default function ContactPage() {
             className="group flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-5 transition-colors hover:border-[var(--muted)]"
           >
             <MessageCircle className="h-6 w-6 text-[var(--muted)] group-hover:text-[var(--text)]" />
+
             <div>
               <div className="text-lg font-semibold group-hover:text-[var(--text)]">
                 GitHub Discussions
               </div>
-              <div className="text-sm opacity-70">For questions, ideas, and general help.</div>
+
+              <div className="text-sm opacity-70">
+                For questions, ideas, and general help.
+              </div>
             </div>
+
             <ArrowRight className="ml-auto h-4 w-4 opacity-60" />
           </a>
         </div>
