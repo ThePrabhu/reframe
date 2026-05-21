@@ -1,8 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Github, Mail, MessageCircle } from "lucide-react";
+import { ArrowRight, Github, MessageCircle } from "lucide-react";
 import Footer from "@/components/Footer";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Contact | Reframe",
   description: "Get in touch with the Reframe team.",
 };

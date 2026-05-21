@@ -79,7 +79,9 @@ export default function TipCarousel() {
     }, 300);
   };
 
-  const activeTip = TIPS[activeIdx];
+  const activeTip = TIPS[activeIdx] ?? TIPS[0];
+  if (!activeTip) return null;
+
   const IconComponent = activeTip.icon;
 
   return (

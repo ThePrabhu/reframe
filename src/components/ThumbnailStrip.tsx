@@ -70,7 +70,8 @@ export default function ThumbnailStrip({
     for (let t = 0; t <= duration; t += intervalSeconds) {
       times.push(Math.min(t, duration - 0.1));
     }
-    if (times[times.length - 1] < duration - 0.5) {
+    const lastTime = times.at(-1);
+    if (lastTime !== undefined && lastTime < duration - 0.5) {
       times.push(duration - 0.1);
     }
 
@@ -80,6 +81,7 @@ export default function ThumbnailStrip({
       if (abortRef.current) break;
 
       const time = times[i];
+      if (time === undefined) continue;
       await new Promise<void>((resolve) => {
         const onSeeked = () => {
           video.removeEventListener("seeked", onSeeked);
@@ -115,9 +117,13 @@ export default function ThumbnailStrip({
   };
 
   const activeIndex = thumbnails.findIndex(
-    (t, i) =>
-      currentTime >= t.time &&
-      (i === thumbnails.length - 1 || currentTime < thumbnails[i + 1].time)
+    (t, i) => {
+      const nextThumbnail = thumbnails[i + 1];
+      return (
+        currentTime >= t.time &&
+        (!nextThumbnail || currentTime < nextThumbnail.time)
+      );
+    }
   );
 
   if (!videoSrc) return null;

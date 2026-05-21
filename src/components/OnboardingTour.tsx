@@ -251,7 +251,10 @@ export default function OnboardingTour() {
   useEffect(() => {
   if (localStorage.getItem(TOUR_KEY)) return;
   const t = setTimeout(async () => {
-    const rect = await measureTarget(TOUR_STEPS[0].targetId);
+    const firstStep = TOUR_STEPS[0];
+    if (!firstStep) return;
+
+    const rect = await measureTarget(firstStep.targetId);
     if (rect) {
       setTargetRect(rect);
       setVisible(true);
@@ -267,7 +270,13 @@ useEffect(() => {
     isFirstRender.current = false;
     return;
   }
-  measureTarget(TOUR_STEPS[stepIndex].targetId).then((rect) => {
+  const step = TOUR_STEPS[stepIndex];
+  if (!step) {
+    dismiss();
+    return;
+  }
+
+  measureTarget(step.targetId).then((rect) => {
     if (rect) {
       setTargetRect(rect);
       setTimeout(() => tooltipRef.current?.focus(), 50);
@@ -285,11 +294,17 @@ useEffect(() => {
   useEffect(() => {
   if (!visible) return;
   const onResize = () => {
-    measureTarget(TOUR_STEPS[stepIndex].targetId).then(setTargetRect);
+    const step = TOUR_STEPS[stepIndex];
+    if (!step) {
+      dismiss();
+      return;
+    }
+
+    measureTarget(step.targetId).then(setTargetRect);
   };
   window.addEventListener("resize", onResize);
   return () => window.removeEventListener("resize", onResize);
-}, [visible, stepIndex, measureTarget]);
+}, [visible, stepIndex, measureTarget, dismiss]);
 
   // Keyboard support
   useEffect(() => {
@@ -306,6 +321,8 @@ useEffect(() => {
   }, [visible, stepIndex, dismiss]);
 
   if (!visible || !targetRect) return null;
+  const currentStep = TOUR_STEPS[stepIndex];
+  if (!currentStep) return null;
 
   return createPortal(
     <>
@@ -318,7 +335,7 @@ useEffect(() => {
       />
       <Spotlight rect={targetRect} />
       <Tooltip
-        step={TOUR_STEPS[stepIndex]}
+        step={currentStep}
         stepIndex={stepIndex}
         totalSteps={TOUR_STEPS.length}
         rect={targetRect}
