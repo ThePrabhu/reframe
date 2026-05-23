@@ -191,6 +191,16 @@ function Tooltip({
     >
       {/* Progress bar */}
       <div className="h-1 overflow-hidden rounded-t-xl bg-zinc-200 dark:bg-zinc-700">
+      className="fixed z-[9999] w-80 rounded-xl shadow-2xl border
+        bg-[var(--surface)]
+        border-[var(--border)]
+        text-[var(--text)]
+        transition-all duration-200"
+      style={{ ...style }}
+      tabIndex={-1}
+    >
+      {/* Progress bar */}
+      <div className="h-1 rounded-t-xl overflow-hidden bg-[var(--border)]">
         <div
           className="h-full bg-indigo-500 transition-all duration-300"
           style={{
@@ -207,6 +217,8 @@ function Tooltip({
         <h2 className="mb-1 text-base font-semibold">{step.title}</h2>
 
         <p className="mb-4 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+        <h2 className="text-base font-semibold mb-1">{step.title}</h2>
+        <p className="text-sm text-[var(--muted)] leading-relaxed mb-4">
           {step.description}
         </p>
 
@@ -214,6 +226,7 @@ function Tooltip({
           <button
             onClick={onSkip}
             className="text-xs text-zinc-400 underline underline-offset-2 transition-colors hover:text-zinc-600 dark:hover:text-zinc-200"
+            className="text-xs text-[var(--muted)] hover:text-[var(--text)] transition-colors underline underline-offset-2"
           >
             Skip tour
           </button>
@@ -242,7 +255,11 @@ export default function OnboardingTour() {
   const [targetRect, setTargetRect] = useState<Rect | null>(null);
 
   const tooltipRef = useRef<HTMLDivElement>(null);
+
   const isFirstRender = useRef(true);
+
+  const isFirstRender = useRef(true);  
+  const currentStep = TOUR_STEPS[stepIndex];
 
   const dismiss = useCallback(() => {
     localStorage.setItem(TOUR_KEY, "1");
@@ -332,6 +349,28 @@ export default function OnboardingTour() {
         setTimeout(() => {
           tooltipRef.current?.focus();
         }, 50);
+  }, 600);
+  return () => clearTimeout(t);
+}, [measureTarget]);
+
+// Measure target whenever step changes (skip on first render — init effect handles that)
+useEffect(() => {
+  if (!visible) return;
+  if (isFirstRender.current) {
+    isFirstRender.current = false;
+    return;
+  }
+  if (!currentStep) {
+    dismiss();
+    return;
+  }
+  measureTarget(currentStep.targetId).then((rect) => {
+    if (rect) {
+      setTargetRect(rect);
+      setTimeout(() => tooltipRef.current?.focus(), 50);
+    } else {
+      if (stepIndex < TOUR_STEPS.length - 1) {
+        setStepIndex((i) => i + 1);
       } else {
         if (stepIndex < TOUR_STEPS.length - 1) {
           setStepIndex((i) => i + 1);
@@ -339,8 +378,13 @@ export default function OnboardingTour() {
           dismiss();
         }
       }
+
     });
   }, [stepIndex, visible, measureTarget, dismiss]);
+
+    }
+  });
+  }, [stepIndex, visible, measureTarget, dismiss, currentStep]);
 
   // Re-measure on resize
   useEffect(() => {
@@ -389,7 +433,7 @@ export default function OnboardingTour() {
     };
   }, [visible, stepIndex, dismiss]);
 
-  if (!visible || !targetRect) return null;
+  if (!visible || !targetRect || !currentStep) return null;
 
   const currentStep = TOUR_STEPS[stepIndex];
 
