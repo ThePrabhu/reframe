@@ -43,6 +43,11 @@ export default function ThumbnailStrip({
     objectUrlsRef.current = [];
   }, []);
 
+  const cancelThumbnailRun = useCallback(() => {
+    lastRunIdRef.current++;
+    revokeAllObjectUrls();
+  }, [revokeAllObjectUrls]);
+
   const generateThumbnails = useCallback(async () => {
     if (!videoSrc || duration <= 0) return;
 
@@ -69,21 +74,9 @@ export default function ThumbnailStrip({
 
       if (lastRunIdRef.current !== runId) return;
 
-
-    const times: number[] = [];
-    for (let t = 0; t <= duration; t += intervalSeconds) {
-      times.push(Math.min(t, duration - 0.1));
-    }
-const lastTime = times.at(-1);
-
-if (lastTime !== undefined && lastTime < duration - 0.5) {
-  times.push(duration - 0.1);
-}
-
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-
 
       const thumbW = 160;
       const thumbH = 90;
@@ -94,26 +87,20 @@ if (lastTime !== undefined && lastTime < duration - 0.5) {
       for (let t = 0; t <= duration; t += intervalSeconds) {
         times.push(Math.min(t, duration - 0.1));
       }
-      if ((times[times.length - 1] ?? 0) < duration - 0.5) {
+
+      const lastTime = times.at(-1);
+      if (lastTime !== undefined && lastTime < duration - 0.5) {
         times.push(duration - 0.1);
       }
 
-
-const time = times[i];
-
-if (time === undefined) continue;
-      await new Promise<void>((resolve) => {
-        const onSeeked = async () => {
-          video.removeEventListener("seeked", onSeeked);
-          ctx.drawImage(video, 0, 0, thumbW, thumbH);
-
       const captured: Thumbnail[] = [];
-
 
       for (let i = 0; i < times.length; i++) {
         if (lastRunIdRef.current !== runId) break;
 
-        const time = times[i] ?? 0;
+        const time = times[i];
+        if (time === undefined) continue;
+
         await new Promise<void>((resolve) => {
           const onSeeked = async () => {
             video.removeEventListener("seeked", onSeeked);
@@ -165,11 +152,8 @@ if (time === undefined) continue;
     if (videoSrc && duration > 0) {
       generateThumbnails();
     }
-    return () => {
-      lastRunIdRef.current++;
-      revokeAllObjectUrls();
-    };
-  }, [generateThumbnails, revokeAllObjectUrls, videoSrc, duration]);
+    return cancelThumbnailRun;
+  }, [cancelThumbnailRun, generateThumbnails, videoSrc, duration]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -177,14 +161,14 @@ if (time === undefined) continue;
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-const activeIndex = thumbnails.findIndex((t, i) => {
-  const nextThumbnail = thumbnails[i + 1];
+  const activeIndex = thumbnails.findIndex((t, i) => {
+    const nextThumbnail = thumbnails[i + 1];
 
-  return (
-    currentTime >= t.time &&
-    (!nextThumbnail || currentTime < nextThumbnail.time)
-  );
-});
+    return (
+      currentTime >= t.time &&
+      (!nextThumbnail || currentTime < nextThumbnail.time)
+    );
+  });
 
   if (!videoSrc) return null;
 
@@ -210,7 +194,7 @@ const activeIndex = thumbnails.findIndex((t, i) => {
         )}
         {!isGenerating && thumbnails.length > 0 && (
           <span className="strip-meta">
-            {thumbnails.length} frames · every {intervalSeconds}s
+            {thumbnails.length} frames &middot; every {intervalSeconds}s
           </span>
         )}
       </div>

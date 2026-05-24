@@ -1,3 +1,5 @@
+/* @vitest-environment jsdom */
+
 import React from 'react'
 import { describe, beforeEach, it, expect } from 'vitest'
 import '@testing-library/jest-dom/vitest'
