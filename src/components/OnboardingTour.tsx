@@ -25,25 +25,29 @@ const TOUR_STEPS: TourStep[] = [
   {
     targetId: "upload-zone",
     title: "Drop your video here",
-    description: "Click to browse or drag and drop a video file to get started.",
+    description:
+      "Click to browse or drag and drop a video file to get started.",
     position: "right",
   },
   {
     targetId: "preset-selector",
     title: "Pick an output format",
-    description: "Choose a preset optimised for your platform - Instagram, YouTube, TikTok and more.",
+    description:
+      "Choose a preset optimised for your platform — Instagram, YouTube, TikTok and more.",
     position: "left",
   },
   {
-    targetId: "preset-selector",
+    targetId: "trim",
     title: "Trim & adjust",
-    description: "After uploading, set in/out points and tweak colour in the controls that appear on the left.",
+    description:
+      "After uploading, set in/out points and tweak colour in the controls that appear on the left.",
     position: "left",
   },
   {
     targetId: "export-button",
     title: "Export your video",
-    description: "Click Export or press Cmd+Enter to process your video locally - nothing ever leaves your device.",
+    description:
+      "Click Export (or press ⌘↵) to process your video locally — nothing ever leaves your device.",
     position: "top",
   },
 ];
@@ -51,7 +55,7 @@ const TOUR_STEPS: TourStep[] = [
 function getTooltipStyle(
   rect: Rect,
   position: TourStep["position"],
-  tooltipRef: React.RefObject<HTMLDivElement | null>
+  tooltipRef: React.RefObject<HTMLDivElement | null>,
 ): React.CSSProperties {
   const tooltip = tooltipRef.current;
   const tw = tooltip?.offsetWidth ?? 320;
@@ -229,57 +233,41 @@ export default function OnboardingTour() {
     }
   }, [dismiss, stepIndex]);
 
-  const measureTarget = useCallback((id: string): Promise<Rect | null> => {
-    return new Promise((resolve) => {
-      const attempt = (tries: number) => {
-        const el = document.getElementById(id);
+const measureTarget = useCallback((id: string): Promise<Rect | null> => {
+  return new Promise((resolve) => {
+    const attempt = (tries: number) => {
+      const el = document.getElementById(id);
 
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
 
-          setTimeout(() => {
-            const r = el.getBoundingClientRect();
-            resolve({
-              top: r.top,
-              left: r.left,
-              width: r.width,
-              height: r.height,
-            });
-          }, 400);
+        setTimeout(() => {
+          const r = el.getBoundingClientRect();
+          resolve({
+            top: r.top,
+            left: r.left,
+            width: r.width,
+            height: r.height,
+          });
+        }, 400);
 
-          return;
-        }
-
-        if (tries <= 0) {
-          resolve(null);
-          return;
-        }
-
-        setTimeout(() => attempt(tries - 1), 300);
-      };
-
-      attempt(5);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (localStorage.getItem(TOUR_KEY)) return;
-
-    const timer = setTimeout(async () => {
-      const firstStep = TOUR_STEPS[0];
-      if (!firstStep) return;
-
-      const rect = await measureTarget(firstStep.targetId);
-      if (rect) {
-        setTargetRect(rect);
-        setVisible(true);
+        return;
       }
-    }, 600);
 
-    return () => clearTimeout(timer);
-  }, [measureTarget]);
+      if (tries <= 0) {
+        resolve(null);
+        return;
+      }
+
+      setTimeout(() => attempt(tries - 1), 300);
+    };
+
+    attempt(5);
+  });
+}, []);
 
   useEffect(() => {
+
     if (!visible) return;
 
     if (isFirstRender.current) {
@@ -313,6 +301,86 @@ export default function OnboardingTour() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [currentStep, measureTarget, visible]);
+
+    if (localStorage.getItem(TOUR_KEY)) return;
+    const t = setTimeout(async () => {
+      const rect = await measureTarget(TOUR_STEPS[0]?.targetId ?? "");
+      if (rect) {
+        setTargetRect(rect);
+        setVisible(true);
+      }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [measureTarget]);
+
+  // Measure target whenever step changes (skip on first render — init effect handles that)
+  useEffect(() => {
+    if (!visible) return;
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (!currentStep) {
+      dismiss();
+      return;
+    }
+
+    let retryCount = 0;
+    const maxRetries = 10; // Retry up to ~5s with 500ms delays
+    let retryTimer: number | null = null;
+    let cancelled = false;
+
+    const tryMeasure = () => {
+      measureTarget(currentStep.targetId)
+        .then((rect) => {
+          if (cancelled) return;
+          if (rect) {
+            setTargetRect(rect);
+            setTimeout(() => tooltipRef.current?.focus(), 50);
+            retryCount = 0;
+          } else if (retryCount < maxRetries) {
+            retryCount++;
+            retryTimer = window.setTimeout(tryMeasure, 500);
+          } else {
+            // If we've retried enough, fallback to advancing or dismissing
+            if (stepIndex < TOUR_STEPS.length - 1) setStepIndex((i) => i + 1);
+            else dismiss();
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to measure tour target:", error);
+          dismiss();
+        });
+    };
+
+    tryMeasure();
+
+    return () => {
+      cancelled = true;
+      if (retryTimer !== null) clearTimeout(retryTimer);
+    };
+  }, [stepIndex, visible, measureTarget, dismiss, currentStep]);
+
+  // Re-measure on resize or scroll so spotlight stays anchored to target.
+  // requestAnimationFrame prevents layout thrashing on rapid scroll/resize events.
+  useEffect(() => {
+    if (!visible) return;
+    let rafId: number;
+    const remeasure = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        measureTarget(TOUR_STEPS[stepIndex]?.targetId ?? "").then(setTargetRect);
+      });
+    };
+    window.addEventListener("resize", remeasure);
+    window.addEventListener("scroll", remeasure, true);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", remeasure);
+      window.removeEventListener("scroll", remeasure, true);
+    };
+  }, [visible, stepIndex, measureTarget]);
+
 
   useEffect(() => {
     if (!visible) return;
@@ -352,6 +420,6 @@ export default function OnboardingTour() {
         tooltipRef={tooltipRef}
       />
     </>,
-    document.body
+    document.body,
   );
 }

@@ -1,10 +1,11 @@
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  oxc: false,
-  esbuild: {
-    jsx: 'automatic',
-  } as any,
+  oxc: {
+    jsx: {
+      runtime: 'automatic',
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
